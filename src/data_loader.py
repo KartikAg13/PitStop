@@ -8,6 +8,3 @@ def fetch_weekend_laps(year: int, gp: str, session_type) -> pd.DataFrame:
 
 	laps: pd.DataFrame = session.laps
 	return laps
-
-dataframe = fetch_weekend_laps(2022, 'Bahrain', 'R')
-print(dataframe.head())

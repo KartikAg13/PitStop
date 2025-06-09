@@ -1,1 +1,1 @@
-from data_loader import fetch_weekend_laps
+from .data_loader import fetch_weekend_laps
