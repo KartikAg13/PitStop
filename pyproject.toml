@@ -13,7 +13,8 @@ dependencies = [
     "pandas (>=2.3.0,<3.0.0)",
     "scikit-learn (>=1.7.0,<2.0.0)",
     "fastf1 (>=3.5.3,<4.0.0)",
-    "streamlit (>=1.45.1,<2.0.0)"
+    "streamlit (>=1.45.1,<2.0.0)",
+    "sqlalchemy (>=2.0.41,<3.0.0)"
 ]
 
 
