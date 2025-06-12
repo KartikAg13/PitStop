@@ -1,25 +1,52 @@
 import pandas as pd
-import os
+import numpy as np
 
-from fastf1 import get_session, Cache
-from sqlalchemy import insert
+from fastf1 import get_session, get_event_schedule, Cache
 
-from src.db.engine import get_engine
-from src.db.tables import get_qualifying_table
+from src.db.engine import getEngine
+from src.db.tables import getQualifyingTable, TABLE_NAME
 
-def fetch_qualifying_data(start_year: int, end_year: int):
+def parseTimeDelta(time_delta) -> float | None:
+	if pd.isna(time_delta) or time_delta is None:
+		return None
+	try:
+		return time_delta.total_seconds()
+	except:
+		return None
+
+def fetchQualifyingData(start_year: int, end_year: int):
 	
 	Cache.enable_cache("cache/")
-	qualifying = get_qualifying_table()
+	qualifying = getQualifyingTable()
+	engine = getEngine(TABLE_NAME + ".db")
 
 	for year in range(start_year, end_year + 1):
 		
-		for round in range(1, 25):
+		for weekend in range(1, 25):
 			try:
-				session = get_session(year, round, 'Q')
+				session = get_session(year, weekend, 'Q')
 				session.load()
 				dataframe = session.results
 				
+				with engine.begin() as connection:
+					for row in dataframe.itertuples(index=False):
+						driver_name = getattr(row, "Driver").familyname
+						q1_time = parseTimeDelta(getattr(row, "Q1"))
+						q2_time = parseTimeDelta(getattr(row, "Q2"))
+						q3_time = parseTimeDelta(getattr(row, "Q3"))
+						place = getattr(row, "Position", None)
+						company = getattr(row, "Team")
 
-			except Exception as e:
-				print(f"Round {round} for year {year} was not found")
+						insert_statement = qualifying.insert().values( 
+							season = year, round = weekend,
+							driver = driver_name,
+							q1 = q1_time, q2 = q2_time, q3 = q3_time,
+							position = place,
+							team = company
+						)
+						connection.execute(insert_statement)
+					
+					print(f"Round {weekend} for year {year} successfully stored")
+
+			except:
+				print(f"Round {weekend} for year {year} was not found")

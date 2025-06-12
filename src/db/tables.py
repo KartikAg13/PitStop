@@ -1,13 +1,15 @@
 from sqlalchemy import MetaData, Table, Column, Integer, String, Float
 
-from .engine import get_engine
+from .engine import getEngine
 
-def get_qualifying_table():
+TABLE_NAME: str = "qualifying"
+
+def getQualifyingTable():
 
 	metadata = MetaData()
 
 	qualifying = Table(
-		"qualifying", metadata,
+		TABLE_NAME, metadata,
 		Column("id", Integer, primary_key=True, autoincrement=True),
 		Column("season", Integer, nullable=False),
 		Column("round", Integer, nullable=False),
@@ -15,10 +17,11 @@ def get_qualifying_table():
 		Column("q1", Float),
 		Column("q2", Float),
 		Column("q3", Float),
-		Column("position", Float)
+		Column("position", Integer),
+		Column("team", String)
 	)
 
-	engine = get_engine("qualifying.db")
+	engine = getEngine(TABLE_NAME + ".db")
 	metadata.create_all(engine)
 
 	return qualifying

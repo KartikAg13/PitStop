@@ -1,10 +1,13 @@
 from sqlalchemy import create_engine
 from pathlib import Path
+import os
 
-def get_engine(database_name: str):
+def getEngine(database_name: str):
 	
-	DB_PATH = Path(__file__).parents[1].parent / "data" / database_name
+	DB_DIR = Path(__file__).parents[2] / "data"
+	os.makedirs(DB_DIR, exist_ok=True)
+	DB_PATH = DB_DIR / database_name
 
-	engine = create_engine(f"sqlite:///{DB_PATH}", echo=True)
+	engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
 
-	return engine
+	return engine 
