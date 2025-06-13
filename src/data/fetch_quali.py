@@ -1,6 +1,6 @@
 import pandas as pd
 
-from fastf1 import get_session, Cache
+from fastf1 import get_session, get_event, Cache
 
 from src.db.engine import getEngine
 from src.db.tables import getQualifyingTable, TABLE_NAME
@@ -48,3 +48,20 @@ def fetchQualifyingData(start_year: int, end_year: int):
 
 			except Exception as e:
 				print(f"Error in fetchQualifyingData(): {e}")
+
+# def trying():
+# 	Cache.enable_cache('cache/')
+# 	session = get_session(2023, 20, 'Q')
+# 	event = get_event(2023, 20)
+# 	session.load(weather=True)
+# 	lap = session.laps
+# 	data = session.results
+# 	weather = session.weather_data
+# 	print(data.info())
+# 	print("Weather Data:")
+# 	print(weather)
+# 	print("Lap Data:")
+# 	print(lap)
+# 	print("Lap Data Info:")
+# 	print(lap.info())
+# 	print(event['EventName'])

@@ -1,1 +1,1 @@
-from .fetch_quali import fetchQualifyingData
+from .fetch_quali import fetchQualifyingData, trying
