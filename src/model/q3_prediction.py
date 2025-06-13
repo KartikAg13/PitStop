@@ -10,4 +10,10 @@ def getData() -> pd.DataFrame:
 
 	data = pd.read_sql("SELECT * FROM qualifying", connection)
 	print(data.head())
+	print(data.info())
+	print(data.describe())
+	return data
+
+def removeNullQ1(data: pd.DataFrame) -> pd.DataFrame:
+	data = data.dropna(subset=['q1'])
 	return data

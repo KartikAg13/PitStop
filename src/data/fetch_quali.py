@@ -1,7 +1,6 @@
 import pandas as pd
-import numpy as np
 
-from fastf1 import get_session, get_event_schedule, Cache
+from fastf1 import get_session, Cache
 
 from src.db.engine import getEngine
 from src.db.tables import getQualifyingTable, TABLE_NAME
@@ -11,7 +10,8 @@ def parseTimeDelta(time_delta) -> float | None:
 		return None
 	try:
 		return time_delta.total_seconds()
-	except:
+	except Exception as e:
+		print(f"Error in parseTimeDelta(): {e}")
 		return None
 
 def fetchQualifyingData(start_year: int, end_year: int):
@@ -30,23 +30,21 @@ def fetchQualifyingData(start_year: int, end_year: int):
 				
 				with engine.begin() as connection:
 					for row in dataframe.itertuples(index=False):
-						driver_name = getattr(row, "Driver").familyname
+						driver_name = getattr(row, "Abbreviation")
 						q1_time = parseTimeDelta(getattr(row, "Q1"))
 						q2_time = parseTimeDelta(getattr(row, "Q2"))
 						q3_time = parseTimeDelta(getattr(row, "Q3"))
-						place = getattr(row, "Position", None)
-						company = getattr(row, "Team")
+						company = getattr(row, "TeamName")
 
 						insert_statement = qualifying.insert().values( 
 							season = year, round = weekend,
 							driver = driver_name,
 							q1 = q1_time, q2 = q2_time, q3 = q3_time,
-							position = place,
 							team = company
 						)
 						connection.execute(insert_statement)
 					
 					print(f"Round {weekend} for year {year} successfully stored")
 
-			except:
-				print(f"Round {weekend} for year {year} was not found")
+			except Exception as e:
+				print(f"Error in fetchQualifyingData(): {e}")

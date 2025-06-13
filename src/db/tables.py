@@ -17,7 +17,6 @@ def getQualifyingTable():
 		Column("q1", Float),
 		Column("q2", Float),
 		Column("q3", Float),
-		Column("position", Integer),
 		Column("team", String)
 	)
 
