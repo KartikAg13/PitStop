@@ -3,6 +3,9 @@ import pandas as pd
 from src.db.engine import getEngine
 from src.db.tables import TABLE_NAME 
 
+def convertToExcel(data: pd.DataFrame) -> None:
+	data.to_excel("qualifying.xlsx", float_format="%.4f", engine="openpyxl")
+
 def printUniqueValues(data: pd.DataFrame) -> None:
 	for column in data.columns:
 		try:
@@ -25,6 +28,10 @@ def getData() -> pd.DataFrame:
 	print(data.describe())
 
 	printUniqueValues(data)
+	try:
+		convertToExcel(data)
+	except Exception as e:
+		print(f"Error in convertToExcel: {e}")
 	return data
 
 def removeNullQ1(data: pd.DataFrame) -> pd.DataFrame:

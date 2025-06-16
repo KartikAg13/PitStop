@@ -19,32 +19,6 @@ def parseTimeDelta(time_delta) -> float | None:
 			print(f"Error in parseTimeDelta: {e}")
 			return None
 		
-# def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, tolerance: float = 31.0):
-# 	if laps is None or laps.empty or weather is None or weather.empty:
-# 		return (None, ) * 7
-	
-# 	# remove the NaT valued rows, removes the In laps and Out laps, keeps Flying Laps and Slow Laps
-# 	laps_copy = laps[laps['LapTime'].notna()].copy()
-# 	# convert time to seconds for comparison
-# 	laps_copy['LapTime_seconds'] = laps_copy['LapTime'].dt.total_seconds()
-	
-# 	# get the row index of closest time to q1/q2/q3 time (laptime in laps dataframe with minimum difference to laptime in results dataframe)
-# 	row = (laps_copy['LapTime_seconds'] - target_second).abs().idxmin(skipna=True)
-
-# 	time = laps_copy.loc[row, 'Time']
-# 	# convert the time located to seconds
-# 	time = time.total_seconds() if isinstance(time, pd.Timedelta) else time
-
-# 	weather_copy = weather.copy()
-# 	weather_copy['Time_seconds'] = weather_copy['Time'].dt.total_seconds()
-# 	weather_copy['Time_seconds'] = pd.to_numeric(weather_copy['Time_seconds'], errors='coerce')
-# 	time = pd.to_numeric(time, errors='coerce')
-# 	# search for the time in the weather dataframe to get the weather
-# 	index = (weather_copy['Time_seconds'] - time).abs().idxmin(skipna=True)
-# 	data = weather_copy.loc[index]
-
-# 	return data["AirTemp"], data["TrackTemp"], data["Humidity"], data["Pressure"], data["WindSpeed"], data["WindDirection"], data["Rainfall"]
-
 def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, tolerance: float = 31.0):
     
 	# Check if laps or weather data is empty or target_second is NaN
