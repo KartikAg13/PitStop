@@ -23,7 +23,7 @@ def getQualifyingTable():
     	Column("humidity_q1", Float),
     	Column("pressure_q1", Float),
     	Column("wind_speed_q1", Float),
-		Column("wind_direction_q1", Integer),
+		Column("wind_direction_q1", Float),
     	Column("rain_flag_q1", Boolean),
 		Column("q1", Float),
 		
@@ -32,7 +32,7 @@ def getQualifyingTable():
     	Column("humidity_q2", Float),
     	Column("pressure_q2", Float),
     	Column("wind_speed_q2", Float),
-		Column("wind_direction_q2", Integer),
+		Column("wind_direction_q2", Float),
     	Column("rain_flag_q2", Boolean),
 		Column("q2", Float),
 		
@@ -41,7 +41,7 @@ def getQualifyingTable():
     	Column("humidity_q3", Float),
     	Column("pressure_q3", Float),
     	Column("wind_speed_q3", Float),
-		Column("wind_direction_q3", Integer),
+		Column("wind_direction_q3", Float),
     	Column("rain_flag_q3", Boolean),
 		Column("q3", Float),
 	)

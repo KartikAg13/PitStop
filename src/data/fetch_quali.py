@@ -54,20 +54,11 @@ def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, 
 	time = pd.to_numeric(lap_seconds, errors='coerce')
 	weather_diffs = (weather_copy['Time_seconds'] - time).abs()
 
-	if weather_diffs.empty or weather_diffs.min() > tolerance:  # 5 min tolerance
+	if weather_diffs.empty or weather_diffs.min() > tolerance:
 		return (None, ) * 7
 	
 	weather_idx = weather_diffs.idxmin()
 	data = weather.loc[weather_idx]
-
-	wind_dir = data.get("WindDirection")
-	if isinstance(wind_dir, bytes):
-		try:
-			wind_dir = int.from_bytes(wind_dir, 'little')
-		except:
-			wind_dir = None
-	elif not isinstance(wind_dir, (int, float)) or pd.isna(wind_dir):
-		wind_dir = None
 
 	return (
 		data.get("AirTemp"), 
@@ -75,7 +66,7 @@ def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, 
 		data.get("Humidity"), 
 		data.get("Pressure"), 
 		data.get("WindSpeed"), 
-		wind_dir, 
+		data.get("WindDirection"), 
 		data.get("Rainfall")
 	)
 
@@ -139,32 +130,3 @@ def fetchQualifyingData(start_year: int, end_year: int):
 
 			except Exception as e:
 				print(f"Error in fetchQualifyingData(): {e}")
-
-def check() -> None:
-	Cache.enable_cache("cache/")
-	year: int = 2022
-	round_number: int =  3
-	session = get_session(year, round_number, 'Q')
-	session.load(weather=True)
-
-	event = get_event(year, round_number)
-
-	result = session.results
-	laps = session.laps
-	weather = session.weather_data
-	round_name = event["EventName"]
-
-	# print("Session result:")
-	# print(result)
-	# print("Session laps: ")
-	# print(laps)
-	print("Session weather: ")
-	print(weather)
-	# print(f"Event name: ", round_name)
-
-	# result.to_excel("check.xlsx", float_format="%.4f", engine="openpyxl", sheet_name="result")
-	# laps.to_excel("check.xlsx", float_format="%.4f", engine="openpyxl", sheet_name="laps")
-	if isinstance(weather, pd.DataFrame):
-		# weather.to_excel("check.xlsx", float_format="%.4f", engine="openpyxl", sheet_name="weather")
-		print(weather.info())
-		print(weather.describe())
