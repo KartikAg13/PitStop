@@ -139,3 +139,32 @@ def fetchQualifyingData(start_year: int, end_year: int):
 
 			except Exception as e:
 				print(f"Error in fetchQualifyingData(): {e}")
+
+def check() -> None:
+	Cache.enable_cache("cache/")
+	year: int = 2022
+	round_number: int =  3
+	session = get_session(year, round_number, 'Q')
+	session.load(weather=True)
+
+	event = get_event(year, round_number)
+
+	result = session.results
+	laps = session.laps
+	weather = session.weather_data
+	round_name = event["EventName"]
+
+	# print("Session result:")
+	# print(result)
+	# print("Session laps: ")
+	# print(laps)
+	print("Session weather: ")
+	print(weather)
+	# print(f"Event name: ", round_name)
+
+	# result.to_excel("check.xlsx", float_format="%.4f", engine="openpyxl", sheet_name="result")
+	# laps.to_excel("check.xlsx", float_format="%.4f", engine="openpyxl", sheet_name="laps")
+	if isinstance(weather, pd.DataFrame):
+		# weather.to_excel("check.xlsx", float_format="%.4f", engine="openpyxl", sheet_name="weather")
+		print(weather.info())
+		print(weather.describe())
