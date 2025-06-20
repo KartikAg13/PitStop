@@ -5,7 +5,7 @@ from pathlib import Path
 project_root = Path(__file__).parents[1]
 sys.path.append(str(project_root))
 
-from src.data.fetch_quali import fetchQualifyingData
+from src.data.load_data import fetchQualifyingData
 
 if __name__ == "__main__":
 	try:

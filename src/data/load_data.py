@@ -6,10 +6,13 @@ from src.db.engine import getEngine
 from src.db.tables import getQualifyingTable, TABLE_NAME
 
 def parseTimeDelta(time_delta) -> float | None:
+	# Return None if time_delta is None or NaN (float but missing value)
 	if time_delta is None or (isinstance(time_delta, float) and pd.isna(time_delta)):
 		return None
 	elif isinstance(time_delta, float):
 		return time_delta
+
+	# If time_delta is a pd.Timedelta, return the total seconds (float)
 	try:
 		return time_delta.total_seconds()
 	except:
@@ -19,6 +22,7 @@ def parseTimeDelta(time_delta) -> float | None:
 			print(f"Error in parseTimeDelta: {e}")
 			return None
 		
+
 def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, tolerance: float = 31.0):
     
 	# Check if laps or weather data is empty or target_second is NaN
@@ -57,8 +61,8 @@ def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, 
 	if weather_diffs.empty or weather_diffs.min() > tolerance:
 		return (None, ) * 7
 	
-	weather_idx = weather_diffs.idxmin()
-	data = weather.loc[weather_idx]
+	row = weather_diffs.idxmin()
+	data = weather.loc[row]
 
 	return (
 		data.get("AirTemp"), 
@@ -70,8 +74,10 @@ def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, 
 		data.get("Rainfall")
 	)
 
+
 def fetchQualifyingData(start_year: int, end_year: int):
 	
+	# Enable caching for FastF1
 	Cache.enable_cache("cache/")
 	qualifying = getQualifyingTable()
 	engine = getEngine(TABLE_NAME + ".db")
@@ -80,6 +86,7 @@ def fetchQualifyingData(start_year: int, end_year: int):
 		
 		for weekend in range(1, 25):
 			try:
+				# Get the event and session data
 				event = get_event(year, weekend)
 				event_name = event['EventName']
 				session = get_session(year, weekend, 'Q')
@@ -88,6 +95,7 @@ def fetchQualifyingData(start_year: int, end_year: int):
 				laps = session.laps
 				weather = session.weather_data
 
+				# Start a database connection
 				with engine.begin() as connection:
 					for row in results.itertuples():
 						number = int(getattr(row, "DriverNumber"))
@@ -98,13 +106,14 @@ def fetchQualifyingData(start_year: int, end_year: int):
 						q2_time: float | None = parseTimeDelta(getattr(row, "Q2", None))
 						q3_time: float | None = parseTimeDelta(getattr(row, "Q3", None))
 
-						# filter the laps for the driver
+						# Filter the laps for the driver
 						laps_driver = laps[laps['DriverNumber'] == str(number)]
 						if isinstance(weather, pd.DataFrame):
 							at1, tt1, hu1, pr1, ws1, wd1, rf1 = getWeather(laps_driver, weather, q1_time) if q1_time is not None else (None, ) * 7
 							at2, tt2, hu2, pr2, ws2, wd2, rf2 = getWeather(laps_driver, weather, q2_time) if q2_time is not None else (None, ) * 7
 							at3, tt3, hu3, pr3, ws3, wd3, rf3 = getWeather(laps_driver, weather, q3_time) if q3_time is not None else (None, ) * 7
 
+						# Write the insert statement
 						insert_statement = qualifying.insert().values(
 							season = year, round_number = weekend,
 							round_name = event_name, driver_number = number,
@@ -123,10 +132,21 @@ def fetchQualifyingData(start_year: int, end_year: int):
 							rain_flag_q3 = rf3, q3 = q3_time
 						)
 
+						# Try to insert the data into the database
 						try:
 							connection.execute(insert_statement)
 						except Exception as e:
-							print(f"Error storing data in database in fetchQualifyingData: {e}")
+							print(f"Error storing data in {TABLE_NAME}.db in fetchQualifyingData: {e}")
 
 			except Exception as e:
 				print(f"Error in fetchQualifyingData(): {e}")
+
+
+def getData() -> pd.DataFrame:
+
+	engine = getEngine(TABLE_NAME + ".db")
+	connection = engine.connect()
+
+	data = pd.read_sql("SELECT * FROM qualifying", connection)
+
+	return data

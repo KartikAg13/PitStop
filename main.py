@@ -1,6 +1,10 @@
-from src.data_loader import fetch_weekend_laps
+from src.utils.print_utils import dataInfo
+from src.data.preprocess import preprocessData
 
-dataframe = fetch_weekend_laps(2024, 'Bahrain', 'R')
-print(dataframe.head())
+def main() -> None:
 
-# Not supposed to be here
+	data = preprocessData()
+	dataInfo(data)
+
+if __name__ == "__main__":
+	main()
