@@ -1,10 +1,7 @@
-from src.utils.print_utils import dataInfo
-from src.data.preprocess import preprocessData
+from src.model.q3_prediction import model
 
 def main() -> None:
-
-	data = preprocessData()
-	dataInfo(data)
+	model()
 
 if __name__ == "__main__":
 	main()
