@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 import xgboost as xgb
 import joblib
@@ -58,20 +59,35 @@ class Q3Prediction:
 	def trainModel(self, x_train, y_train):
 		
 		parameter_grid = {
-			"n_estimators": [100, 200, 300],
-			"max_depth": [5, 6, 7],
-			"learning_rate": [0.01, 0.1, 0.2],
-			"subsample": [0.8, 0.9, 1.0],
-			"colsample_bytree": [0.8, 0.9, 1.0]
+			"n_estimators": [200, 300, 400],
+			"max_depth": [4, 5, 6],
+			"learning_rate": [0.05, 0.1, 0.15],
+			"subsample": [0.85, 0.9, 0.95],
+			"colsample_bytree": [0.85, 0.9, 0.95],
+			"gamma": [0.2, 0.3, 0.4],
+			"reg_alpha": [0.2, 0.3, 0.4],
+			"reg_lambda": [0.2, 0.3, 0.4]
 		}
 
-		self.model = xgb.XGBRegressor(objective='reg:squarederror', random_state=50)
+		self.model = xgb.XGBRegressor(objective='reg:absoluteerror', random_state=50)
 
 		grid_search = GridSearchCV(self.model, parameter_grid, cv=10 ,scoring='neg_mean_absolute_error', n_jobs=-1, verbose=3)
 		grid_search.fit(x_train, y_train)
 		
 		self.model = grid_search.best_estimator_
 		print(f"Best score: {grid_search.best_score_}")
+		print(f"Best parameters: {grid_search.best_params_}")
+
+		results = pd.DataFrame(grid_search.cv_results_)
+		results = results.sort_values("mean_test_score", ascending=False)
+
+		plt.plot(results["mean_test_score"])
+		plt.xlabel("Hyperparameter combination")
+		plt.ylabel("Neg MAE")
+		plt.title("Grid Search Results")
+		plt.grid()
+		plt.savefig("grid_search_results.png")
+		plt.close()
 
 		joblib.dump(self.model, "q3_prediction.joblib")
 
@@ -97,8 +113,6 @@ class Q3Prediction:
 
 
 	def getFeatureImportance(self, x_train: pd.DataFrame): 
-		
-		self.model = self.load()
 
 		if self.model is not None:
 			importance = self.model.feature_importances_
@@ -126,10 +140,10 @@ class Q3Prediction:
 			'pressure_q2', 'wind_speed_q2', 'wind_direction_q2',
 			'rain_flag_q2', 'air_temp_q3', 'track_temp_q3', 'humidity_q3',
 			'pressure_q3', 'wind_speed_q3', 'wind_direction_q3',
-			'rain_flag_q3'
+			'rain_flag_q3', 'team'
 		]
 		data_copy = data_copy.drop(columns=drop_columns)
-		features = ['driver_name', 'team', 'round_name']
+		features = ['driver_name', 'round_name']
 		data_copy = self.handleCategorical(features, data_copy)
 
 		train_data = data_copy[data_copy['season'] < 2025]
@@ -146,6 +160,7 @@ class Q3Prediction:
 
 		self.features = x_train.columns.to_list()
 
+		# self.model = self.load()
 		self.trainModel(x_train, y_train)
 		self.predict(x_test, y_test)
 
