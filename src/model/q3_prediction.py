@@ -95,6 +95,22 @@ class Q3Prediction:
 		}
 
 
+	def getFeatureImportance(self, x_train: pd.DataFrame): 
+		
+		self.model = self.load()
+
+		if self.model is not None:
+			importance = self.model.feature_importances_
+			feature_names = x_train.columns
+
+			importance_list = pd.DataFrame({
+				'feature': feature_names,
+				'importance': importance 
+			}).sort_values(by='importance', ascending=False)
+
+			print(importance_list)
+
+
 	def start(self) -> None:
 
 		data = preprocessData()
@@ -103,16 +119,21 @@ class Q3Prediction:
 		train_data = data_copy[data_copy['season'] < 2025]
 		test_data = data_copy[data_copy['season'] == 2025]
 
-		# print("Training Data Info:")
-		# dataInfo(train_data)
-		# print("Testing Data Info:")
-		# dataInfo(test_data)
+		rookie_list = ['HAD', 'DOO', 'COL', 'ANT', 'LAW', 'BOR']
+		test_data = test_data[~test_data['driver_name'].isin(rookie_list)]
 
 		y_train = train_data['q3']
 		y_test = test_data['q3']
 
-		x_train = train_data.drop(columns=['air_temp_q3', 'track_temp_q3', 'humidity_q3', 'pressure_q3', 'wind_speed_q3', 'wind_direction_q3', 'rain_flag_q3', 'q3'])
-		x_test = test_data.drop(columns=['air_temp_q3', 'track_temp_q3', 'humidity_q3', 'pressure_q3', 'wind_speed_q3', 'wind_direction_q3', 'rain_flag_q3', 'q3'])
+		drop_columns = [
+			'id', 'driver_number', 'round_number',
+			'air_temp_q3', 'track_temp_q3', 'humidity_q3',
+			'pressure_q3', 'wind_speed_q3', 'wind_direction_q3',
+			'rain_flag_q3', 'q3'
+		]
+
+		x_train = train_data.drop(columns=drop_columns)
+		x_test = test_data.drop(columns=drop_columns)
 
 		features = ['driver_name', 'team', 'round_name']
 		x_train = self.handleCategorical(features, x_train)
@@ -124,6 +145,9 @@ class Q3Prediction:
 		self.train_model(x_train, y_train)
 		self.predict(x_test, y_test)
 
+		self.getFeatureImportance(x_train)
+
 	
 	def load(self):
-		joblib.load("q3_prediction.joblib")
+		self.model = joblib.load("q3_prediction.joblib")
+		return self.model
