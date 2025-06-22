@@ -1,6 +1,4 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 
 import xgboost as xgb
 import joblib
@@ -10,7 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
 
 from src.data.preprocess import preprocessData
-from src.utils.print_utils import dataInfo
+# from src.utils.print_utils import dataInfo
 
 class Q3Prediction:
 	
@@ -21,7 +19,7 @@ class Q3Prediction:
 		self.test_scores = {}
 
 
-	def feature_engineering(self, data: pd.DataFrame) -> pd.DataFrame:
+	def featureEngineering(self, data: pd.DataFrame) -> pd.DataFrame:
 		
 		# Improvement ratio from q1 to q2
 		data['improvement'] = (data['q1'] - data['q2']) / data['q1']
@@ -32,7 +30,10 @@ class Q3Prediction:
 		# Get the change in weather
 		data['avg_air'] = (data['air_temp_q1'] + data['air_temp_q2']) / 2.0
 		data['avg_track'] = (data['track_temp_q1'] + data['track_temp_q2']) / 2.0
-		data['avg_wind'] = (data['wind_speed_q1'] + data['wind_speed_q2']) / 2.0
+		data['avg_wspeed'] = (data['wind_speed_q1'] + data['wind_speed_q2']) / 2.0
+		data['avg_wdirection'] = (data['wind_direction_q1'] + data['wind_direction_q2']) / 2.0
+		data['avg_pre'] = (data['pressure_q1'] + data['pressure_q2']) / 2.0
+		data['avg_hum'] = (data['humidity_q1'] + data['humidity_q2']) / 2.0
 
 		return data
 	
@@ -54,7 +55,7 @@ class Q3Prediction:
 		return data
 
 
-	def train_model(self, x_train, y_train):
+	def trainModel(self, x_train, y_train):
 		
 		parameter_grid = {
 			"n_estimators": [100, 200, 300],
@@ -64,9 +65,9 @@ class Q3Prediction:
 			"colsample_bytree": [0.8, 0.9, 1.0]
 		}
 
-		self.model = xgb.XGBRegressor(objective='reg:squarederror')
+		self.model = xgb.XGBRegressor(objective='reg:squarederror', random_state=50)
 
-		grid_search = GridSearchCV(self.model, parameter_grid, cv=10 ,scoring='neg_mean_absolute_error', n_jobs=-1, verbose=2)
+		grid_search = GridSearchCV(self.model, parameter_grid, cv=10 ,scoring='neg_mean_absolute_error', n_jobs=-1, verbose=3)
 		grid_search.fit(x_train, y_train)
 		
 		self.model = grid_search.best_estimator_
@@ -116,6 +117,21 @@ class Q3Prediction:
 		data = preprocessData()
 		data_copy = data[data['q3'].notna()].copy()
 
+		data_copy = self.featureEngineering(data_copy)
+		drop_columns = [
+			'id', 'driver_number', 'round_number',
+			'air_temp_q1', 'track_temp_q1', 'humidity_q1',
+			'pressure_q1', 'wind_speed_q1', 'wind_direction_q1',
+			'rain_flag_q1', 'air_temp_q2', 'track_temp_q2', 'humidity_q2',
+			'pressure_q2', 'wind_speed_q2', 'wind_direction_q2',
+			'rain_flag_q2', 'air_temp_q3', 'track_temp_q3', 'humidity_q3',
+			'pressure_q3', 'wind_speed_q3', 'wind_direction_q3',
+			'rain_flag_q3'
+		]
+		data_copy = data_copy.drop(columns=drop_columns)
+		features = ['driver_name', 'team', 'round_name']
+		data_copy = self.handleCategorical(features, data_copy)
+
 		train_data = data_copy[data_copy['season'] < 2025]
 		test_data = data_copy[data_copy['season'] == 2025]
 
@@ -125,24 +141,12 @@ class Q3Prediction:
 		y_train = train_data['q3']
 		y_test = test_data['q3']
 
-		drop_columns = [
-			'id', 'driver_number', 'round_number',
-			'air_temp_q3', 'track_temp_q3', 'humidity_q3',
-			'pressure_q3', 'wind_speed_q3', 'wind_direction_q3',
-			'rain_flag_q3', 'q3'
-		]
+		x_train = train_data.drop(columns=['q3'])
+		x_test = test_data.drop(columns=['q3'])
 
-		x_train = train_data.drop(columns=drop_columns)
-		x_test = test_data.drop(columns=drop_columns)
+		self.features = x_train.columns.to_list()
 
-		features = ['driver_name', 'team', 'round_name']
-		x_train = self.handleCategorical(features, x_train)
-		x_test = self.handleCategorical(features, x_test)
-
-		x_train = self.feature_engineering(x_train)
-		x_test = self.feature_engineering(x_test)
-
-		self.train_model(x_train, y_train)
+		self.trainModel(x_train, y_train)
 		self.predict(x_test, y_test)
 
 		self.getFeatureImportance(x_train)
