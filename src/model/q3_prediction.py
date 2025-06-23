@@ -4,17 +4,17 @@ import matplotlib.pyplot as plt
 import xgboost as xgb
 import joblib
 
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
+from typing import cast
 
 from src.data.preprocess import preprocessData
-# from src.utils.print_utils import dataInfo
 
 class Q3Prediction:
 	
 	def __init__(self):
-		self.model = None
+		self.model: xgb.XGBRegressor | None = None
 		self.label_encoders = {}
 		self.features = []
 		self.test_scores = {}
@@ -26,15 +26,15 @@ class Q3Prediction:
 		data['improvement'] = (data['q1'] - data['q2']) / data['q1']
 
 		# Check for possible rain
-		data['rain'] = (data['rain_flag_q1'].astype(int) | data['rain_flag_q2'].astype(int))
+		data['rain'] = (data['rain_flag_q1'].astype(int) | data['rain_flag_q2'].astype(int) | data['rain_flag_q3'].astype(int))
 
 		# Get the change in weather
-		data['avg_air'] = (data['air_temp_q1'] + data['air_temp_q2']) / 2.0
-		data['avg_track'] = (data['track_temp_q1'] + data['track_temp_q2']) / 2.0
-		data['avg_wspeed'] = (data['wind_speed_q1'] + data['wind_speed_q2']) / 2.0
-		data['avg_wdirection'] = (data['wind_direction_q1'] + data['wind_direction_q2']) / 2.0
-		data['avg_pre'] = (data['pressure_q1'] + data['pressure_q2']) / 2.0
-		data['avg_hum'] = (data['humidity_q1'] + data['humidity_q2']) / 2.0
+		data['avg_air'] = (data['air_temp_q1'] + data['air_temp_q2'] + data['air_temp_q3']) / 3.0
+		data['avg_track'] = (data['track_temp_q1'] + data['track_temp_q2'] + data['track_temp_q3']) / 3.0
+		data['avg_wspeed'] = (data['wind_speed_q1'] + data['wind_speed_q2'] + data['wind_speed_q3']) / 3.0
+		data['avg_wdirection'] = (data['wind_direction_q1'] + data['wind_direction_q2'] + data['wind_direction_q3']) / 3.0
+		data['avg_pre'] = (data['pressure_q1'] + data['pressure_q2'] + data['pressure_q3']) / 3.0
+		data['avg_hum'] = (data['humidity_q1'] + data['humidity_q2'] + data['humidity_q3']) / 3.0
 
 		return data
 	
@@ -43,15 +43,11 @@ class Q3Prediction:
 
 		for column in features:
 			
-			try:
 				if column not in self.label_encoders:
 					self.label_encoders[column] = LabelEncoder()
 					data[column] = self.label_encoders[column].fit_transform(data[column].astype(str))
 				else:
 					data[column] = self.label_encoders[column].transform(data[column].astype(str))
-			except:
-				# Handle exception for rookies of 2025
-				data[column] = -1
 
 		return data
 
@@ -59,35 +55,35 @@ class Q3Prediction:
 	def trainModel(self, x_train, y_train):
 		
 		parameter_grid = {
-			"n_estimators": [200, 300, 400],
-			"max_depth": [4, 5, 6],
-			"learning_rate": [0.05, 0.1, 0.15],
+			"n_estimators": [150, 200, 250],
+			"max_depth": [3, 4, 5],
+			"learning_rate": [0.01, 0.05, 0.1],
 			"subsample": [0.85, 0.9, 0.95],
-			"colsample_bytree": [0.85, 0.9, 0.95],
-			"gamma": [0.2, 0.3, 0.4],
-			"reg_alpha": [0.2, 0.3, 0.4],
-			"reg_lambda": [0.2, 0.3, 0.4]
+			"colsample_bytree": [0.9, 0.95, 1.0],
+			"gamma": [0.35, 0.4, 0.45],
+			"reg_alpha": [0.25, 0.3, 0.35],
+			"reg_lambda": [0.15, 0.2, 0.25],
+			"min_child_weight": [4, 5, 6]
 		}
 
-		self.model = xgb.XGBRegressor(objective='reg:absoluteerror', random_state=50)
+		self.model = xgb.XGBRegressor(objective='reg:absoluteerror', random_state=50, eval_metric='mae', tree_method='hist')
 
-		grid_search = GridSearchCV(self.model, parameter_grid, cv=10 ,scoring='neg_mean_absolute_error', n_jobs=-1, verbose=3)
+		tscv = TimeSeriesSplit(n_splits=6)
+
+		grid_search = RandomizedSearchCV(
+			self.model, 
+			param_distributions=parameter_grid, 
+			cv=tscv, 
+			scoring='neg_mean_absolute_error', 
+			n_jobs=-1, 
+			verbose=10, 
+			return_train_score=True
+		)
 		grid_search.fit(x_train, y_train)
 		
-		self.model = grid_search.best_estimator_
+		self.model = cast(xgb.XGBRegressor, grid_search.best_estimator_)
 		print(f"Best score: {grid_search.best_score_}")
 		print(f"Best parameters: {grid_search.best_params_}")
-
-		results = pd.DataFrame(grid_search.cv_results_)
-		results = results.sort_values("mean_test_score", ascending=False)
-
-		plt.plot(results["mean_test_score"])
-		plt.xlabel("Hyperparameter combination")
-		plt.ylabel("Neg MAE")
-		plt.title("Grid Search Results")
-		plt.grid()
-		plt.savefig("grid_search_results.png")
-		plt.close()
 
 		joblib.dump(self.model, "q3_prediction.joblib")
 
@@ -140,10 +136,10 @@ class Q3Prediction:
 			'pressure_q2', 'wind_speed_q2', 'wind_direction_q2',
 			'rain_flag_q2', 'air_temp_q3', 'track_temp_q3', 'humidity_q3',
 			'pressure_q3', 'wind_speed_q3', 'wind_direction_q3',
-			'rain_flag_q3', 'team'
+			'rain_flag_q3'
 		]
 		data_copy = data_copy.drop(columns=drop_columns)
-		features = ['driver_name', 'round_name']
+		features = ['driver_name', 'team', 'round_name']
 		data_copy = self.handleCategorical(features, data_copy)
 
 		train_data = data_copy[data_copy['season'] < 2025]
