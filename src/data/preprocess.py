@@ -1,7 +1,5 @@
 import pandas as pd
 
-from src.db.engine import getEngine
-from src.db.tables import TABLE_NAME 
 from src.data.load_data import getData
 
 def removeNullQ1(data: pd.DataFrame) -> pd.DataFrame:

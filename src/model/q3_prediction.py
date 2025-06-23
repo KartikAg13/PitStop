@@ -1,168 +1,148 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
 
-import xgboost as xgb
-import joblib
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
-from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
-from typing import cast
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from src.data.preprocess import preprocessData
 
-class Q3Prediction:
+class Q3Prediction(nn.Module):
 	
-	def __init__(self):
-		self.model: xgb.XGBRegressor | None = None
-		self.label_encoders = {}
-		self.features = []
-		self.test_scores = {}
-
-
-	def featureEngineering(self, data: pd.DataFrame) -> pd.DataFrame:
+	def __init__(self, input_size=70):
+		# Used to initialize the parent class
+		super(Q3Prediction, self).__init__()
 		
-		# Improvement ratio from q1 to q2
-		data['improvement'] = (data['q1'] - data['q2']) / data['q1']
-
-		# Check for possible rain
-		data['rain'] = (data['rain_flag_q1'].astype(int) | data['rain_flag_q2'].astype(int) | data['rain_flag_q3'].astype(int))
-
-		# Get the change in weather
-		data['avg_air'] = (data['air_temp_q1'] + data['air_temp_q2'] + data['air_temp_q3']) / 3.0
-		data['avg_track'] = (data['track_temp_q1'] + data['track_temp_q2'] + data['track_temp_q3']) / 3.0
-		data['avg_wspeed'] = (data['wind_speed_q1'] + data['wind_speed_q2'] + data['wind_speed_q3']) / 3.0
-		data['avg_wdirection'] = (data['wind_direction_q1'] + data['wind_direction_q2'] + data['wind_direction_q3']) / 3.0
-		data['avg_pre'] = (data['pressure_q1'] + data['pressure_q2'] + data['pressure_q3']) / 3.0
-		data['avg_hum'] = (data['humidity_q1'] + data['humidity_q2'] + data['humidity_q3']) / 3.0
-
-		return data
-	
-
-	def handleCategorical(self, features, data: pd.DataFrame) -> pd.DataFrame:
-
-		for column in features:
-			
-				if column not in self.label_encoders:
-					self.label_encoders[column] = LabelEncoder()
-					data[column] = self.label_encoders[column].fit_transform(data[column].astype(str))
-				else:
-					data[column] = self.label_encoders[column].transform(data[column].astype(str))
-
-		return data
-
-
-	def trainModel(self, x_train, y_train):
+		# Layer 1
+		self.l1 = nn.Linear(in_features=input_size, out_features=32)
+		self.a1 = nn.LeakyReLU(negative_slope=0.1)
 		
-		parameter_grid = {
-			"n_estimators": [150, 200, 250],
-			"max_depth": [3, 4, 5],
-			"learning_rate": [0.01, 0.05, 0.1],
-			"subsample": [0.85, 0.9, 0.95],
-			"colsample_bytree": [0.9, 0.95, 1.0],
-			"gamma": [0.35, 0.4, 0.45],
-			"reg_alpha": [0.25, 0.3, 0.35],
-			"reg_lambda": [0.15, 0.2, 0.25],
-			"min_child_weight": [4, 5, 6]
-		}
+		# Layer 2
+		self.l2 = nn.Linear(in_features=32, out_features=16)
+		self.a2 = nn.LeakyReLU()
 
-		self.model = xgb.XGBRegressor(objective='reg:absoluteerror', random_state=50, eval_metric='mae', tree_method='hist')
-
-		tscv = TimeSeriesSplit(n_splits=6)
-
-		grid_search = RandomizedSearchCV(
-			self.model, 
-			param_distributions=parameter_grid, 
-			cv=tscv, 
-			scoring='neg_mean_absolute_error', 
-			n_jobs=-1, 
-			verbose=10, 
-			return_train_score=True
-		)
-		grid_search.fit(x_train, y_train)
-		
-		self.model = cast(xgb.XGBRegressor, grid_search.best_estimator_)
-		print(f"Best score: {grid_search.best_score_}")
-		print(f"Best parameters: {grid_search.best_params_}")
-
-		joblib.dump(self.model, "q3_prediction.joblib")
+		# Layer 3
+		self.l3 = nn.Linear(in_features=16, out_features=1)
+		self.a3 = nn.ReLU()
 
 	
-	def predict(self, x_test, y_test):
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		# Forward Propogation
+		z1 = self.l1(x)
+		a1 = self.a1(z1)
 
-		if self.model is not None:
-			y_predicted = self.model.predict(x_test)
+		z2 = self.l2(a1)
+		a2 = self.a2(z2)
 
-		mae = mean_absolute_error(y_test, y_predicted)
-		rmse = root_mean_squared_error(y_test, y_predicted)
-		r2 = r2_score(y_test, y_predicted)
-
-		print(f"Mean Absolute Error: {mae}")
-		print(f"Root Mean Squared Error: {rmse}")
-		print(f"R2 Score: {r2}")
-
-		self.test_scores = {
-			"mae": mae,
-			"rmse": rmse,
-			"r2": r2
-		}
-
-
-	def getFeatureImportance(self, x_train: pd.DataFrame): 
-
-		if self.model is not None:
-			importance = self.model.feature_importances_
-			feature_names = x_train.columns
-
-			importance_list = pd.DataFrame({
-				'feature': feature_names,
-				'importance': importance 
-			}).sort_values(by='importance', ascending=False)
-
-			print(importance_list)
-
-
-	def start(self) -> None:
-
-		data = preprocessData()
-		data_copy = data[data['q3'].notna()].copy()
-
-		data_copy = self.featureEngineering(data_copy)
-		drop_columns = [
-			'id', 'driver_number', 'round_number',
-			'air_temp_q1', 'track_temp_q1', 'humidity_q1',
-			'pressure_q1', 'wind_speed_q1', 'wind_direction_q1',
-			'rain_flag_q1', 'air_temp_q2', 'track_temp_q2', 'humidity_q2',
-			'pressure_q2', 'wind_speed_q2', 'wind_direction_q2',
-			'rain_flag_q2', 'air_temp_q3', 'track_temp_q3', 'humidity_q3',
-			'pressure_q3', 'wind_speed_q3', 'wind_direction_q3',
-			'rain_flag_q3'
-		]
-		data_copy = data_copy.drop(columns=drop_columns)
-		features = ['driver_name', 'team', 'round_name']
-		data_copy = self.handleCategorical(features, data_copy)
-
-		train_data = data_copy[data_copy['season'] < 2025]
-		test_data = data_copy[data_copy['season'] == 2025]
-
-		rookie_list = ['HAD', 'DOO', 'COL', 'ANT', 'LAW', 'BOR']
-		test_data = test_data[~test_data['driver_name'].isin(rookie_list)]
-
-		y_train = train_data['q3']
-		y_test = test_data['q3']
-
-		x_train = train_data.drop(columns=['q3'])
-		x_test = test_data.drop(columns=['q3'])
-
-		self.features = x_train.columns.to_list()
-
-		# self.model = self.load()
-		self.trainModel(x_train, y_train)
-		self.predict(x_test, y_test)
-
-		self.getFeatureImportance(x_train)
-
+		z3 = self.l3(a2)
+		a3 = self.a3(z3)
+		return a3
 	
-	def load(self):
-		self.model = joblib.load("q3_prediction.joblib")
-		return self.model
+
+def featureEngineering(data: pd.DataFrame) -> pd.DataFrame:
+
+	# Track improvement from q1 to q2
+	data['improvement'] = (data['q1'] - data['q2']) / data['q1']
+
+	# Check for rain in any session
+	data['rain'] = data['rain_flag_q1'].astype(int) | data['rain_flag_q2'].astype(int) | data['rain_flag_q3'].astype(int)
+
+	# Get the average data pattern
+	data['avg_air'] = (data['air_temp_q1'] + data['air_temp_q2'] + data['air_temp_q3']) / 3.0
+	data['avg_track'] = (data['track_temp_q1'] + data['track_temp_q2'] + data['track_temp_q3']) / 3.0
+	data['avg_wspeed'] = (data['wind_speed_q1'] + data['wind_speed_q2'] + data['wind_speed_q3']) / 3.0
+	data['avg_wdirection'] = (data['wind_direction_q1'] + data['wind_direction_q2'] + data['wind_direction_q3']) / 3.0
+	data['avg_pre'] = (data['pressure_q1'] + data['pressure_q2'] + data['pressure_q3']) / 3.0
+	data['avg_hum'] = (data['humidity_q1'] + data['humidity_q2'] + data['humidity_q3']) / 3.0		
+	return data
+
+
+def prep():
+
+	# Get the clean data
+	data = preprocessData()
+
+	# Filter the data for only q3 drivers
+	data_copy = data[data['q3'].notna()].copy()
+
+	# Create new features
+	data_copy = featureEngineering(data=data_copy)
+
+	# Drop columns that are not required
+	drop_columns: list[str] = ['id', 'round_number', 'driver_number']
+	data_copy = data_copy.drop(columns=drop_columns)
+
+	# Provide labels to the text columns
+	text_columns: list[str] = ['round_name', 'driver_name', 'team']
+	for column in text_columns:
+		label_encoder = LabelEncoder()
+		data_copy[column] = label_encoder.fit_transform(data_copy[column])
+
+	# Split the data into train and test
+	train_data = data_copy[data_copy['season'] < 2025]
+	test_data = data_copy[data_copy['season'] == 2025]
+
+	# Remove the rookies from the test data
+	rookie_list: list[str] = ['HAD', 'DOO', 'COL', 'ANT', 'LAW', 'BOR']
+	test_data = test_data[~test_data['driver_name'].isin(rookie_list)]
+
+	# Split the data into x and y
+	y_train = train_data['q3']
+	y_test = test_data['q3']
+	x_train = train_data.drop(columns=['q3'])
+	x_test = test_data.drop(columns=['q3'])
+
+	# Normalize the data
+	x_scaler = StandardScaler()
+	x_train = x_scaler.fit_transform(X=x_train)
+	x_test = x_scaler.transform(X=x_test)
+
+	# Convert the data to torch tensors
+	x_train = torch.tensor(data=x_train, dtype=torch.float32)
+	x_test = torch.tensor(data=x_test, dtype=torch.float32)
+	y_train = torch.tensor(data=y_train.values, dtype=torch.float32).view(-1, 1)
+	y_test = torch.tensor(data=y_test.values, dtype=torch.float32).view(-1, 1)
+
+	return x_train, y_train, x_test, y_test
+
+
+def train():
+
+	x_train, y_train, x_test, y_test = prep()
+
+	input_size = x_train.shape[1]
+
+	model = Q3Prediction(input_size=input_size)
+	criterion = nn.L1Loss()
+	optimizer = optim.Adam(model.parameters(), lr=0.01)
+	cost = []
+
+	number_of_epochs: int = 10
+	for epoch in range(number_of_epochs):
+		model.train()
+		optimizer.zero_grad()
+		outputs = model(x_train)
+		loss = criterion(outputs, y_train)
+		loss.backward()
+		optimizer.step()
+
+		cost.append(loss.item())
+
+		if epoch % 10 == 0:
+			print(f"Epoch: {epoch}/{number_of_epochs}, Loss: {loss.item()}")
+
+	model.eval()
+	y_predicted = model(x_test)
+	y_predicted = y_predicted.detach().numpy()
+	y_test = y_test.detach().numpy()
+	mae = mean_absolute_error(y_true=y_test, y_pred=y_predicted)
+	mse = mean_squared_error(y_true=y_test, y_pred=y_predicted)
+	r2 = r2_score(y_true=y_test, y_pred=y_predicted)
+
+	torch.save(model.state_dict(), 'q3_prediction_model.pth')
+	print(f"MAE: {mae}, MSE: {mse}, R2 Score: {r2}")
+	print(f"y_test: {y_test}, y_pred: {y_predicted}")
+	
