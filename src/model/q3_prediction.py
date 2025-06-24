@@ -40,15 +40,15 @@ class Q3Prediction:
 	def trainModel(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
 		
 		xgb_param_grid = {
-			"n_estimators": [200, 400, 600],
-			"max_depth": [3, 5, 7],
-			"learning_rate": [0.01, 0.05, 0.1],
-			"subsample": [0.8, 0.9, 1.0],
-			"colsample_bytree": [0.8, 0.9, 1.0],
+			"n_estimators": [600, 650, 700],
+			"max_depth": [2, 3, 4],
+			"learning_rate": [0.01, 0.015, 0.02],
+			"subsample": [0.6, 0.7, 0.8],
+			"colsample_bytree": [0.9, 0.95, 1.0],
 			"gamma": [0.3, 0.4, 0.5],
-			"reg_alpha": [0.2, 0.3, 0.4],
+			"reg_alpha": [0.3, 0.4, 0.5],
 			"reg_lambda": [0.1, 0.2, 0.3],
-			"min_child_weight": [3, 5, 7],
+			"min_child_weight": [5, 6, 7],
 			"tree_method": ["hist", "auto"]
 		}
 		
