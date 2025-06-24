@@ -1,64 +1,44 @@
 import pandas as pd
-import numpy as np
 
-# from src.data.load_data import getData
+from src.data.load_data import getData
+from src.db.tables import QUALIFYING_TABLE
+from src.utils.print_utils import dataInfo
 
-def removeNullQ1(data: pd.DataFrame) -> pd.DataFrame:
+from sklearn.preprocessing import LabelEncoder
+
+def handleCategorical(features: list[str], data: pd.DataFrame) -> pd.DataFrame:
+    for feature in features:
+        le = LabelEncoder()
+        data[feature] = le.fit_transform(data[feature].astype(str))
+    return data
+
+
+def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
+
+	data: pd.DataFrame = getData(table_name=QUALIFYING_TABLE)
+
+	data = data[data["q3"].notna() & data["q1"].notna()]
+
+	drop_columns: list[str] = ["id", "driver_number", "round_number"]
+	data = data.drop(columns=drop_columns)
+
+	rookie_list: list[str] = ["HAD", "DOO", "COL", "ANT", "LAW", "BOR"]
+	data = data[~data["driver_name"].isin(values=rookie_list)]
+
+	features: list[str] = ['driver_name', 'team', 'round_name']
+	data: pd.DataFrame = handleCategorical(features=features, data=data)
+
+	train_data: pd.DataFrame = data[data["season"] < 2025]
+	test_data: pd.DataFrame = data[data["season"] == 2025]
+
+	print(f"Train Data Info")
+	dataInfo(data=train_data)
+	print(f"Test Data Info")
+	dataInfo(data=test_data)
+
+	x_train: pd.DataFrame = train_data.drop(columns=["q3"])
+	y_train: pd.Series = train_data["q3"]
+	x_test: pd.DataFrame = test_data.drop(columns=["q3"])
+	y_test: pd.Series = test_data["q3"]
 	
-	# Remove the null values in q1
-	data = data.dropna(subset=['q1'])
-
-	# Remove the null values in q1 weather
-	data = data[~(data['q1'].notna() & (
-				data['air_temp_q1'].isna() | 
-				data['track_temp_q1'].isna() | 
-				data['humidity_q1'].isna() | 
-				data['pressure_q1'].isna() | 
-				data['wind_speed_q1'].isna() | 
-				data['wind_direction_q1'].isna() | 
-				data['rain_flag_q1'].isna()
-			))]
-	return data
-
-
-def removeNullQ2(data: pd.DataFrame) -> pd.DataFrame:
-
-	# Remove the null values in q2 weather
-	data = data[~(data['q2'].notna() & (
-				data['air_temp_q2'].isna() | 
-				data['track_temp_q2'].isna() | 
-				data['humidity_q2'].isna() | 
-				data['pressure_q2'].isna() | 
-				data['wind_speed_q2'].isna() | 
-				data['wind_direction_q2'].isna() | 
-				data['rain_flag_q2'].isna()
-			))]
-	
-	return data
-
-
-def removeNullQ3(data: pd.DataFrame) -> pd.DataFrame:
-
-	# Remove the null values in q3 weather
-	data = data[~(data['q3'].notna() & (
-				data['air_temp_q3'].isna() | 
-				data['track_temp_q3'].isna() | 
-				data['humidity_q3'].isna() | 
-				data['pressure_q3'].isna() | 
-				data['wind_speed_q3'].isna() | 
-				data['wind_direction_q3'].isna() | 
-				data['rain_flag_q3'].isna()
-			))]
-	
-	return data	
-
-
-def preprocessData():
-	
-	# data = getData()
-
-	# data = removeNullQ1(data)
-	# data = removeNullQ2(data)
-	# data = removeNullQ3(data)
-	data = np.zeros(1)
-	return data
+	return x_train, y_train, x_test, y_test

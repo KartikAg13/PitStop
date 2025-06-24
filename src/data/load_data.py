@@ -3,7 +3,7 @@ import pandas as pd
 from fastf1 import Cache,  get_event, get_session
 from fastf1.events import Event, Session
 
-from sqlalchemy import Engine, Table, Insert, Connection
+from sqlalchemy import Engine, Table, Insert, Connection, text, TextClause
 
 from src.db.engine import getEngine
 from src.db.tables import getQualifyingTable, QUALIFYING_TABLE
@@ -91,3 +91,13 @@ def getData(table_name: str) -> pd.DataFrame:
 	connection.close()
 
 	return data
+
+def deleteYear(year: int, table_name: str) -> None:
+    engine: Engine = getEngine(database_name=DB_NAME)
+    connection: Connection = engine.connect()
+
+    delete_statement: TextClause = text(text=f"DELETE FROM {table_name} WHERE season = {year}")
+    connection.execute(statement=delete_statement)
+
+    connection.close()
+    print(f"Deleted data for year {year} from table {table_name}.")

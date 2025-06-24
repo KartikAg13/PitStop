@@ -9,6 +9,6 @@ from src.data.load_data import fetchQualifyingData
 
 if __name__ == "__main__":
 	try:
-		fetchQualifyingData(2014, 2025)
+		fetchQualifyingData(2024, 2025)
 	except Exception as e:
 		print(f"Error in store_quali.py: {e}")
