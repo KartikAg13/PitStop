@@ -25,6 +25,18 @@ class Q3Prediction:
 
 		return data
 	
+
+	def printResults(self, cv_results, top: int) -> None:
+		
+		data: pd.DataFrame = pd.DataFrame(cv_results)
+		data = data.sort_values(by="mean_test_score", ascending=False)
+		
+		columns = [column for column in data.columns if column.startswith("param_")] + ["mean_test_score", "std_test_score", "rank_test_score"]
+		data = data[columns].head(top)
+
+		data.to_csv("xgb_results.csv", index=False)
+
+	
 	def trainModel(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
 		
 		xgb_param_grid = {
@@ -48,7 +60,7 @@ class Q3Prediction:
 			estimator=self.model,
 			param_distributions=xgb_param_grid,
 			cv=tscv,
-			n_iter=50,
+			n_iter=1000,
 			scoring="neg_mean_absolute_error",
 			n_jobs=-1,
 			verbose=10,
@@ -61,10 +73,9 @@ class Q3Prediction:
 		joblib.dump(self.model, "saved_models/xgb_model.joblib")
 	
 		print("Model trained successfully")
-
+		self.printResults(cv_results=xgb_search.cv_results_, top=25)
 		print(f"Best XGBoost Parameters: {xgb_search.best_params_}")
 		print(f"Best XGBoost Score: {xgb_search.best_score_}")
-		print(f"XGBoost Training Scores: {xgb_search.cv_results_}")
 
 	
 	def predict(self, x_test, y_test):
