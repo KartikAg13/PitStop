@@ -1,152 +1,93 @@
 import pandas as pd
 
-from fastf1 import get_session, get_event, Cache
+from fastf1 import Cache,  get_event, get_session
+from fastf1.events import Event, Session
+
+from sqlalchemy import Engine, Table, Insert, Connection
 
 from src.db.engine import getEngine
-from src.db.tables import getQualifyingTable, TABLE_NAME
+from src.db.tables import getQualifyingTable, QUALIFYING_TABLE
+from src.data.export import convertToExcel
 
-def parseTimeDelta(time_delta) -> float | None:
-	# Return None if time_delta is None or NaN (float but missing value)
-	if time_delta is None or (isinstance(time_delta, float) and pd.isna(time_delta)):
-		return None
-	elif isinstance(time_delta, float):
-		return time_delta
+DB_NAME: str = "f1_data.db"
 
-	# If time_delta is a pd.Timedelta, return the total seconds (float)
-	try:
-		return time_delta.total_seconds()
-	except:
-		try:
-			return float(time_delta)
-		except  Exception as e:
-			print(f"Error in parseTimeDelta: {e}")
-			return None
-		
 
-def getWeather(laps: pd.DataFrame, weather: pd.DataFrame, target_second: float, tolerance: float = 31.0):
-    
-	# Check if laps or weather data is empty or target_second is NaN
-	if laps is None or laps.empty or weather is None or weather.empty or pd.isna(target_second):
-		return (None, ) * 7
+def getQualifyingTimes(row):
 	
-	# Filter valid laps
-	laps_copy = laps.dropna(subset=['LapTime']).copy()
-	if laps_copy.empty:
-		return (None, ) * 7
-
-	# Convert lap times to seconds
-	laps_copy['LapTime_seconds'] = laps_copy['LapTime'].dt.total_seconds()
-
-	# Find closest lap to target time
-	time_diffs = (laps_copy['LapTime_seconds'] - target_second).abs()
-	if time_diffs.min() > 0.1:
-		return (None, ) * 7
+	q1: pd.Timedelta | None = getattr(row, "Q1")
 	
-	row = time_diffs.idxmin()
-	lap_time = laps_copy.loc[row, 'Time']
-
-	# Convert to seconds if needed
-	if isinstance(lap_time, pd.Timedelta):
-		lap_seconds = lap_time.total_seconds()
+	if q1 is None:
+		return (None, ) * 3
 	else:
-		lap_seconds = lap_time
-	
-	# Find closest weather data
-	weather_copy = weather.copy()
-	weather_copy['Time_seconds'] = weather_copy['Time'].dt.total_seconds()
-	weather_copy['Time_seconds'] = pd.to_numeric(weather_copy['Time_seconds'], errors='coerce')
-	time = pd.to_numeric(lap_seconds, errors='coerce')
-	weather_diffs = (weather_copy['Time_seconds'] - time).abs()
+		q1_time: float = q1.total_seconds()
+		q2: pd.Timedelta | None = getattr(row, "Q2")
+		
+		if q2 is None:
+			return q1_time, None, None
+		else:
+			q2_time: float = q2.total_seconds()
+			q3: pd.Timedelta | None = getattr(row, "Q3")
 
-	if weather_diffs.empty or weather_diffs.min() > tolerance:
-		return (None, ) * 7
-	
-	row = weather_diffs.idxmin()
-	data = weather.loc[row]
+			if q3 is None:
+				return q1_time, q2_time, None
+			else:
+				q3_time: float = q3.total_seconds()
+				return q1_time, q2_time, q3_time
 
-	return (
-		data.get("AirTemp"), 
-		data.get("TrackTemp"), 
-		data.get("Humidity"), 
-		data.get("Pressure"), 
-		data.get("WindSpeed"), 
-		data.get("WindDirection"), 
-		data.get("Rainfall")
-	)
+
 
 
 def fetchQualifyingData(start_year: int, end_year: int):
-	
-	# Enable caching for FastF1
-	Cache.enable_cache("cache/")
-	qualifying = getQualifyingTable()
-	engine = getEngine(TABLE_NAME + ".db")
+
+	engine: Engine = getEngine(database_name=DB_NAME)
+	qualifying: Table = getQualifyingTable(engine=engine)
+
+	Cache.enable_cache(cache_dir="cache/")
 
 	for year in range(start_year, end_year + 1):
-		
+
 		for weekend in range(1, 25):
+
 			try:
-				# Get the event and session data
-				event = get_event(year, weekend)
-				event_name = event['EventName']
-				session = get_session(year, weekend, 'Q')
-				session.load(weather=True)
-				results = session.results
-				laps = session.laps
-				weather = session.weather_data
+				event: Event = get_event(year=year, gp=weekend)
+				event_name: str = event["EventName"]
 
-				# Start a database connection
+				session: Session = get_session(year=year, gp=weekend, identifier='Q')
+				session.load()
+				results: pd.DataFrame = session.results
+
 				with engine.begin() as connection:
+					
 					for row in results.itertuples():
-						number = int(getattr(row, "DriverNumber"))
-						name = str(getattr(row, "Abbreviation"))
-						company = str(getattr(row, "TeamName"))
+						
+						number: int = int(getattr(row, "DriverNumber"))
+						name: str = str(getattr(row, "Abbreviation"))
+						company: str = str(getattr(row, "TeamName"))
 
-						q1_time: float | None = parseTimeDelta(getattr(row, "Q1", None))
-						q2_time: float | None = parseTimeDelta(getattr(row, "Q2", None))
-						q3_time: float | None = parseTimeDelta(getattr(row, "Q3", None))
+						q1_time, q2_time, q3_time = getQualifyingTimes(row=row)
 
-						# Filter the laps for the driver
-						laps_driver = laps[laps['DriverNumber'] == str(number)]
-						if isinstance(weather, pd.DataFrame):
-							at1, tt1, hu1, pr1, ws1, wd1, rf1 = getWeather(laps_driver, weather, q1_time) if q1_time is not None else (None, ) * 7
-							at2, tt2, hu2, pr2, ws2, wd2, rf2 = getWeather(laps_driver, weather, q2_time) if q2_time is not None else (None, ) * 7
-							at3, tt3, hu3, pr3, ws3, wd3, rf3 = getWeather(laps_driver, weather, q3_time) if q3_time is not None else (None, ) * 7
-
-						# Write the insert statement
-						insert_statement = qualifying.insert().values(
+						insert_statement: Insert = qualifying.insert().values(
 							season = year, round_number = weekend,
 							round_name = event_name, driver_number = number,
 							driver_name = name, team = company,
-							air_temp_q1 = at1, track_temp_q1 = tt1,
-							humidity_q1 = hu1, pressure_q1 = pr1,
-							wind_speed_q1 = ws1, wind_direction_q1 = wd1,
-							rain_flag_q1 = rf1, q1 = q1_time,
-							air_temp_q2 = at2, track_temp_q2 = tt2,
-							humidity_q2 = hu2, pressure_q2 = pr2,
-							wind_speed_q2 = ws2, wind_direction_q2 = wd2,
-							rain_flag_q2 = rf2, q2 = q2_time,
-							air_temp_q3 = at3, track_temp_q3 = tt3,
-							humidity_q3 = hu3, pressure_q3 = pr3,
-							wind_speed_q3 = ws3, wind_direction_q3 = wd3,
-							rain_flag_q3 = rf3, q3 = q3_time
+							q1 = q1_time, q2 = q2_time, q3 = q3_time
 						)
 
-						# Try to insert the data into the database
-						try:
-							connection.execute(insert_statement)
-						except Exception as e:
-							print(f"Error storing data in {TABLE_NAME}.db in fetchQualifyingData: {e}")
+						connection.execute(statement=insert_statement)
 
 			except Exception as e:
-				print(f"Error in fetchQualifyingData(): {e}")
+				print(f"Error in fetchQualifyingData: {e}")
+
+	convertToExcel(table_name=QUALIFYING_TABLE, file_location=f"data/{QUALIFYING_TABLE}.xlsx")
 
 
-def getData() -> pd.DataFrame:
+def getData(table_name: str) -> pd.DataFrame:
 
-	engine = getEngine(TABLE_NAME + ".db")
-	connection = engine.connect()
+	engine: Engine = getEngine(database_name=DB_NAME)
+	connection: Connection = engine.connect()
 
-	data = pd.read_sql("SELECT * FROM qualifying", connection)
+	data = pd.read_sql(sql=f"SELECT * FROM {table_name}", con=connection)
+
+	connection.close()
 
 	return data

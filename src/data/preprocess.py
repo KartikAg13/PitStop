@@ -1,6 +1,7 @@
 import pandas as pd
+import numpy as np
 
-from src.data.load_data import getData
+# from src.data.load_data import getData
 
 def removeNullQ1(data: pd.DataFrame) -> pd.DataFrame:
 	
@@ -52,12 +53,12 @@ def removeNullQ3(data: pd.DataFrame) -> pd.DataFrame:
 	return data	
 
 
-def preprocessData() -> pd.DataFrame:
+def preprocessData():
 	
-	data = getData()
+	# data = getData()
 
-	data = removeNullQ1(data)
-	data = removeNullQ2(data)
-	data = removeNullQ3(data)
-	
+	# data = removeNullQ1(data)
+	# data = removeNullQ2(data)
+	# data = removeNullQ3(data)
+	data = np.zeros(1)
 	return data
