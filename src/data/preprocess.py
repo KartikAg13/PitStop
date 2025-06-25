@@ -18,6 +18,8 @@ def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Se
 	data: pd.DataFrame = getData(table_name=QUALIFYING_TABLE)
 
 	data = data[data["q3"].notna() & data["q1"].notna()]
+     
+	data = data[~(data["q1"] < data["q3"])]
 
 	drop_columns: list[str] = ["id", "driver_number", "round_number"]
 	data = data.drop(columns=drop_columns)
