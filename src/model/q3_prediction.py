@@ -4,7 +4,7 @@ import numpy as np
 import xgboost as xgb
 import joblib
 
-from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
 
 from typing import cast
@@ -41,12 +41,12 @@ class Q3Prediction:
 		
 		xgb_param_grid = {
 			"n_estimators": [600, 650, 700],
-			"max_depth": [2, 3, 4],
+			"max_depth": [2, 3],
 			"learning_rate": [0.01, 0.015, 0.02],
-			"subsample": [0.6, 0.7, 0.8],
+			"subsample": [0.65, 0.7, 0.75],
 			"colsample_bytree": [0.9, 0.95, 1.0],
 			"gamma": [0.3, 0.4, 0.5],
-			"reg_alpha": [0.3, 0.4, 0.5],
+			"reg_alpha": [0.4, 0.45, 0.5],
 			"reg_lambda": [0.1, 0.2, 0.3],
 			"min_child_weight": [5, 6, 7],
 			"tree_method": ["hist", "auto"]
@@ -56,16 +56,14 @@ class Q3Prediction:
 		
 		self.model = xgb.XGBRegressor(objective="reg:absoluteerror", random_state=50, eval_metric="mae")
 
-		xgb_search = RandomizedSearchCV(
+		xgb_search = GridSearchCV(
 			estimator=self.model,
-			param_distributions=xgb_param_grid,
+			param_grid=xgb_param_grid,
 			cv=tscv,
-			n_iter=1000,
 			scoring="neg_mean_absolute_error",
 			n_jobs=-1,
 			verbose=10,
 			return_train_score=True,
-			random_state=50
 		)
 		xgb_search.fit(x_train, y_train)
 		
