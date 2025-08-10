@@ -1,0 +1,1 @@
+import"../chunks/DsnmJJEf.js";import"../chunks/69_IOA4Y.js";import{h as a,i as e}from"../chunks/RBBNZMpk.js";var t=a('<div class="bg-black w-screen h-screen absolute inset-0 z-[-1]"></div>');function p(o){var r=t();e(o,r)}export{p as component};

@@ -1,6 +1,5 @@
 {
-  "typeCheckingMode": "basic",
-  "venvPath": "C:/Users/karti/AppData/Local/pypoetry/Cache/virtualenvs",
-  "venv": "pitstop-fIQ_WvXH-py3.12",
-  "include": ["."]
+  	"typeCheckingMode": "basic",
+  	"venvPath": "C:/Users/karti/AppData/Local/pypoetry/Cache/virtualenvs",
+  	"include": ["."]
 }

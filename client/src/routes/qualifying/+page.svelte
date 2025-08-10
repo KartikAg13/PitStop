@@ -1,1 +1,1 @@
-<div class="bg-black w-screen h-screen absolute inset-0 z-[-1]">Hello</div>
+<div class="bg-black w-screen h-screen absolute inset-0 z-[-1]"></div>

@@ -18,7 +18,7 @@
 			</button>
 		</a>
 		<button
-		class="px-6 py-3 bg-white/10 text-white border border-white/20 rounded-xl shadow-md backdrop-blur-lg hover:bg-white/20 transition-all"
+			class="px-6 py-3 bg-white/10 text-white border border-white/20 rounded-xl shadow-md backdrop-blur-lg hover:bg-white/20 transition-all"
 		>
 		Race Simulation
 		</button>
