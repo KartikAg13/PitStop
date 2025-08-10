@@ -5,9 +5,9 @@ from fastf1.events import Event, Session
 
 from sqlalchemy import Engine, Table, Insert, Connection, text, TextClause
 
-from src.db.engine import getEngine
-from src.db.tables import getQualifyingTable, QUALIFYING_TABLE
-from src.data.export import convertToExcel
+from db.engine import getEngine
+from db.tables import getQualifyingTable, QUALIFYING_TABLE
+from export import convertToExcel
 
 DB_NAME: str = "f1_data.db"
 

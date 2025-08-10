@@ -9,7 +9,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_sco
 
 from typing import cast
 
-from src.data.preprocess import preprocessQualifying
+from core.preprocess import preprocessQualifying
 
 class Q3Prediction:
 	

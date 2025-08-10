@@ -1,8 +1,8 @@
 import pandas as pd
 
-from src.data.load_data import getData
-from src.db.tables import QUALIFYING_TABLE
-from src.utils.print_utils import dataInfo
+from load_data import getData
+from db.tables import QUALIFYING_TABLE
+from utils import dataInfo
 
 from sklearn.preprocessing import LabelEncoder
 
