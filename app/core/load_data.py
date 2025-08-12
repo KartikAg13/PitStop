@@ -5,9 +5,9 @@ from fastf1.events import Event, Session
 
 from sqlalchemy import Engine, Table, Insert, Connection, text, TextClause
 
-from db.engine import getEngine
-from db.tables import getQualifyingTable, QUALIFYING_TABLE
-from export import convertToExcel
+from app.core.db.engine import getEngine
+from app.core.db.tables import getQualifyingTable, QUALIFYING_TABLE
+from .export import convertToExcel
 
 DB_NAME: str = "f1_data.db"
 
@@ -83,13 +83,13 @@ def fetchQualifyingData(start_year: int, end_year: int):
 
 def getData(table_name: str) -> pd.DataFrame:
 
-	engine: Engine = getEngine(database_name=DB_NAME)
-	connection: Connection = engine.connect()
+	# engine: Engine = getEngine(database_name=DB_NAME)
+	# connection: Connection = engine.connect()
 
-	data = pd.read_sql(sql=f"SELECT * FROM {table_name}", con=connection)
+	# data = pd.read_sql(sql=f"SELECT * FROM {table_name}", con=connection)
 
-	connection.close()
-
+	# connection.close()
+	data = pd.read_excel(io="data/qualifying.xlsx")
 	return data
 
 def deleteYear(year: int, table_name: str) -> None:

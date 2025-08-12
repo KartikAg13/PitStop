@@ -1,16 +1,21 @@
 import pandas as pd
+import joblib
 
-from load_data import getData
-from db.tables import QUALIFYING_TABLE
-from utils import dataInfo
+from .load_data import getData
+from app.core.db.tables import QUALIFYING_TABLE
+from .utils import dataInfo
 
 from sklearn.preprocessing import LabelEncoder
 
 def handleCategorical(features: list[str], data: pd.DataFrame) -> pd.DataFrame:
-    for feature in features:
-        le = LabelEncoder()
-        data[feature] = le.fit_transform(data[feature].astype(str))
-    return data
+	encoders = {}
+	for feature in features:
+		le = LabelEncoder()
+		data[feature] = le.fit_transform(data[feature].astype(str))
+		encoders[feature] = le
+
+	joblib.dump(value=encoders, filename="models/le.joblib")
+	return data
 
 
 def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
@@ -18,7 +23,7 @@ def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Se
 	data: pd.DataFrame = getData(table_name=QUALIFYING_TABLE)
 
 	data = data[data["q3"].notna() & data["q1"].notna()]
-     
+		
 	data = data[~(data["q1"] < data["q3"])]
 
 	drop_columns: list[str] = ["id", "driver_number", "round_number"]
@@ -42,5 +47,5 @@ def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Se
 	y_train: pd.Series = train_data["q3"]
 	x_test: pd.DataFrame = test_data.drop(columns=["q3"])
 	y_test: pd.Series = test_data["q3"]
-	
+
 	return x_train, y_train, x_test, y_test

@@ -9,7 +9,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_sco
 
 from typing import cast
 
-from core.preprocess import preprocessQualifying
+from app.core.preprocess import preprocessQualifying
 
 class Q3Prediction:
 	
@@ -68,7 +68,7 @@ class Q3Prediction:
 		xgb_search.fit(x_train, y_train)
 		
 		self.model = cast(xgb.XGBRegressor, xgb_search.best_estimator_)
-		joblib.dump(self.model, "saved_models/xgb_model.joblib")
+		joblib.dump(self.model, "models/xgb_model.joblib")
 	
 		print("Model trained successfully")
 		self.printResults(cv_results=xgb_search.cv_results_, top=25)
@@ -115,6 +115,7 @@ class Q3Prediction:
 		self.features = x_train.columns.to_list()
 		
 		# self.trainModel(x_train, y_train)
+		self.model = joblib.load("models/xgb_model.joblib")
 		
 		print("Predict using test:")
 		self.predict(x_test, y_test)
