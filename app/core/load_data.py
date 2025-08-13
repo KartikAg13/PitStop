@@ -83,13 +83,12 @@ def fetchQualifyingData(start_year: int, end_year: int):
 
 def getData(table_name: str) -> pd.DataFrame:
 
-	# engine: Engine = getEngine(database_name=DB_NAME)
-	# connection: Connection = engine.connect()
+	engine: Engine = getEngine(database_name=DB_NAME)
+	connection: Connection = engine.connect()
 
-	# data = pd.read_sql(sql=f"SELECT * FROM {table_name}", con=connection)
+	data = pd.read_sql(sql=f"SELECT * FROM {table_name}", con=connection)
 
-	# connection.close()
-	data = pd.read_excel(io="data/qualifying.xlsx")
+	connection.close()
 	return data
 
 def deleteYear(year: int, table_name: str) -> None:
