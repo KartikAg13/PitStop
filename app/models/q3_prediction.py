@@ -40,13 +40,13 @@ class Q3Prediction:
 	def trainModel(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
 		
 		xgb_param_grid = {
-			"n_estimators": [600, 625, 650],
-			"max_depth": [2],
-			"learning_rate": [0.015, 0.02, 0.025],
-			"subsample": [0.6, 0.65, 0.7],
-			"colsample_bytree": [0.975, 1.0],
+			"n_estimators": [500, 600, 700],
+			"max_depth": [2, 3, 4],
+			"learning_rate": [0.01, 0.015, 0.02],
+			"subsample": [0.6, 0.7, 0.8],
+			"colsample_bytree": [0.9, 0.95, 1.0],
 			"gamma": [0.3, 0.4, 0.5],
-			"reg_alpha": [0.45, 0.475, 0.5],
+			"reg_alpha": [0.4, 0.45, 0.5],
 			"reg_lambda": [0.1, 0.2, 0.3],
 			"min_child_weight": [4, 5, 6],
 			"tree_method": ["hist"],
@@ -114,8 +114,8 @@ class Q3Prediction:
 		
 		self.features = x_train.columns.to_list()
 		
-		# self.trainModel(x_train, y_train)
-		self.model = joblib.load("models/xgb_model.joblib")
+		self.trainModel(x_train, y_train)
+		# self.model = joblib.load("models/xgb_model.joblib")
 		
 		print("Predict using test:")
 		self.predict(x_test, y_test)

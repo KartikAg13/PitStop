@@ -21,24 +21,25 @@ def handleCategorical(features: list[str], data: pd.DataFrame) -> pd.DataFrame:
 def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
 
 	data: pd.DataFrame = getData(table_name=QUALIFYING_TABLE)
-	print(data.head())
-	print(data.tail())
 
 	data = data[data["q3"].notna() & data["q1"].notna()]
 		
 	data = data[~(data["q1"] < data["q3"])]
 
-	drop_columns: list[str] = ["id", "driver_number", "round_number"]
+	drop_columns: list[str] = ["id", "driver_number"]
 	data = data.drop(columns=drop_columns)
 
-	rookie_list: list[str] = ["HAD", "DOO", "COL", "ANT", "LAW", "BOR"]
-	data = data[~data["driver_name"].isin(values=rookie_list)]
+	# rookie_list: list[str] = ["HAD", "DOO", "COL", "ANT", "LAW", "BOR"]
+	# data = data[~data["driver_name"].isin(values=rookie_list)]
 
 	features: list[str] = ['driver_name', 'team', 'round_name']
 	data: pd.DataFrame = handleCategorical(features=features, data=data)
 
-	train_data: pd.DataFrame = data[data["season"] < 2025]
-	test_data: pd.DataFrame = data[data["season"] == 2025]
+	train_data: pd.DataFrame = data[(data["season"] < 2025) | ((data["season"] == 2025) & (data["round_number"] < 11))]
+	test_data: pd.DataFrame = data[(data["season"] == 2025) & (data["round_number"] > 10)]
+
+	train_data = train_data.drop(columns="round_number")
+	test_data = test_data.drop(columns="round_number")
 
 	print(f"Train Data Info")
 	dataInfo(data=train_data)
