@@ -40,15 +40,15 @@ class Q3Prediction:
 	def trainModel(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
 		
 		xgb_param_grid = {
-			"n_estimators": [500, 600, 700],
-			"max_depth": [2, 3, 4],
-			"learning_rate": [0.01, 0.015, 0.02],
-			"subsample": [0.6, 0.7, 0.8],
-			"colsample_bytree": [0.9, 0.95, 1.0],
-			"gamma": [0.3, 0.4, 0.5],
+			"n_estimators": [650, 700, 750],
+			"max_depth": [3, 4, 5],
+			"learning_rate": [0.015, 0.02, 0.025],
+			"subsample": [0.5, 0.6, 0.7],
+			"colsample_bytree": [0.8, 0.9, 1.0],
+			"gamma": [0.3, 0.35, 0.4],
 			"reg_alpha": [0.4, 0.45, 0.5],
 			"reg_lambda": [0.1, 0.2, 0.3],
-			"min_child_weight": [4, 5, 6],
+			"min_child_weight": [3, 4, 5],
 			"tree_method": ["hist"],
 		}
 		
@@ -62,7 +62,7 @@ class Q3Prediction:
 			cv=tscv,
 			scoring="neg_mean_absolute_error",
 			n_jobs=-1,
-			verbose=10,
+			verbose=9,
 			return_train_score=True,
 		)
 		xgb_search.fit(x_train, y_train)
