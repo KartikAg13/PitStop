@@ -21,6 +21,7 @@ def handleCategorical(features: list[str], data: pd.DataFrame) -> pd.DataFrame:
 def preprocessQualifying() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
 
 	data: pd.DataFrame = getData(table_name=QUALIFYING_TABLE)
+	data.to_csv(path_or_buf="data.csv", index=False)
 
 	data = data[data["q3"].notna() & data["q1"].notna()]
 		

@@ -7,6 +7,7 @@ from sqlalchemy import Engine, Table, Insert, Connection, text, TextClause
 
 from app.core.db.engine import getEngine
 from app.core.db.tables import getQualifyingTable, QUALIFYING_TABLE
+from app.core.utils import dataInfo
 from .export import convertToExcel
 
 DB_NAME: str = "f1_data.db"
@@ -80,6 +81,25 @@ def fetchQualifyingData(start_year: int, end_year: int):
 
 	convertToExcel(table_name=QUALIFYING_TABLE, file_location=f"data/{QUALIFYING_TABLE}.xlsx")
 
+
+def fetchRaceData() -> None:
+	
+	Cache.enable_cache(cache_dir="cache/")
+
+	for weekend in range(1, 25):
+		
+		session: Session = get_session(year=2024, gp=weekend, identifier='R')
+		session.load(weather=True, laps=True)
+		results: pd.DataFrame = session.results
+		weather: pd.DataFrame = session._weather_data
+		laps: pd.DataFrame = session._laps
+
+
+	
+	results.to_excel(excel_writer="results.xlsx", engine="openpyxl", index=False)
+	weather.to_excel(excel_writer="weather.xlsx", engine="openpyxl", index=False)
+	laps.to_excel(excel_writer="laps.xlsx", engine="openpyxl", index=False)
+	
 
 def getData(table_name: str) -> pd.DataFrame:
 

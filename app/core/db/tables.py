@@ -1,6 +1,7 @@
 from sqlalchemy import  Engine, MetaData, Table, Column, Integer, String, Float
 
 QUALIFYING_TABLE: str = "qualifying"
+RACE_TABLE: str = "race"
 
 def getQualifyingTable(engine: Engine) -> Table:
 
@@ -26,3 +27,17 @@ def getQualifyingTable(engine: Engine) -> Table:
 	metadata.create_all(bind=engine)
 
 	return qualifying
+
+def getRaceTable(engine: Engine) -> Table:
+
+	metadata = MetaData()
+
+	race = Table(
+		RACE_TABLE, metadata,
+		Column("id", Integer, primary_key=True, autoincrement=True),
+		Column("round_number", Integer, nullable=False)
+	)
+
+	metadata.create_all(bind=engine)
+
+	return race
