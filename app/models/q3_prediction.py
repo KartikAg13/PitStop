@@ -114,8 +114,8 @@ class Q3Prediction:
 		
 		self.features = x_train.columns.to_list()
 		
-		self.trainModel(x_train, y_train)
-		# self.model = joblib.load("models/xgb_model.joblib")
+		# self.trainModel(x_train, y_train)
+		self.model = joblib.load("models/xgb_model.joblib")
 		
 		print("Predict using test:")
 		self.predict(x_test, y_test)

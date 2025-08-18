@@ -29,6 +29,26 @@
     {:else if error}
         <p style="color: red;">{error}</p>
     {:else}
+        <table>
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Driver</th>
+                    <th>Team</th>
+                    <th>Q3 Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#each predictions as p}
+                    <tr>
+                        <td>{p.position}</td>
+                        <td>{p.driver}</td>
+                        <td>{p.team}</td>
+                        <td>{p.q3}</td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
         <div class="model-info">
             <h2>Model Info</h2>
             <p><strong>Type:</strong> {modelInfo.type}</p>
@@ -40,25 +60,6 @@
                 {/each}
             </ul>
         </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Position</th>
-                    <th>Driver</th>
-                    <th>Team</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each predictions as p}
-                    <tr>
-                        <td>{p.position}</td>
-                        <td>{p.driver}</td>
-                        <td>{p.team}</td>
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
     {/if}
 </div>
 
